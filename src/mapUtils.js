@@ -1,9 +1,85 @@
 import { generateName } from './NameGenerator';
 import { Noise } from 'noisejs'; // ✅ import from noisejs
 
+const COAST_BAND_RATIO = 0.25;
+
+export const pickCoastConfig = () => {
+  const roll = Math.random();
+  if (roll < 0.34) return { type: 'bottom' };
+  if (roll < 0.68) return { type: 'top' };
+  const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+  return { type: 'corner', corner: corners[Math.floor(Math.random() * corners.length)] };
+};
+
+const getCoastBandSizes = (width, height) => ({
+  bandWidth: Math.max(Math.floor(width * COAST_BAND_RATIO), 1),
+  bandHeight: Math.max(Math.floor(height * COAST_BAND_RATIO), 1),
+});
+
+const getSeaBounds = (width, height, coastConfig) => {
+  const { bandWidth, bandHeight } = getCoastBandSizes(width, height);
+
+  if (coastConfig.type === 'top') {
+    return { xStart: 0, xEnd: width - 1, yStart: 0, yEnd: bandHeight - 1 };
+  }
+  if (coastConfig.type === 'bottom') {
+    return { xStart: 0, xEnd: width - 1, yStart: height - bandHeight, yEnd: height - 1 };
+  }
+
+  const corners = {
+    'top-left': { xStart: 0, xEnd: bandWidth - 1, yStart: 0, yEnd: bandHeight - 1 },
+    'top-right': { xStart: width - bandWidth, xEnd: width - 1, yStart: 0, yEnd: bandHeight - 1 },
+    'bottom-left': { xStart: 0, xEnd: bandWidth - 1, yStart: height - bandHeight, yEnd: height - 1 },
+    'bottom-right': { xStart: width - bandWidth, xEnd: width - 1, yStart: height - bandHeight, yEnd: height - 1 },
+  };
+
+  return corners[coastConfig.corner];
+};
+
+const isInCoastBand = (x, y, width, height, coastConfig) => {
+  const { bandWidth, bandHeight } = getCoastBandSizes(width, height);
+
+  if (coastConfig.type === 'top') return y < bandHeight;
+  if (coastConfig.type === 'bottom') return y >= height - bandHeight;
+
+  if (coastConfig.corner === 'top-left') return x < bandWidth && y < bandHeight;
+  if (coastConfig.corner === 'top-right') return x >= width - bandWidth && y < bandHeight;
+  if (coastConfig.corner === 'bottom-left') return x < bandWidth && y >= height - bandHeight;
+  return x >= width - bandWidth && y >= height - bandHeight;
+};
+
+const getCoastFactor = (x, y, width, height, coastConfig) => {
+  const { bandWidth, bandHeight } = getCoastBandSizes(width, height);
+
+  if (coastConfig.type === 'bottom') {
+    return (y - (height - bandHeight)) / bandHeight;
+  }
+  if (coastConfig.type === 'top') {
+    return (bandHeight - y) / bandHeight;
+  }
+
+  let xFactor = 0;
+  let yFactor = 0;
+  if (coastConfig.corner === 'top-left') {
+    xFactor = (bandWidth - x) / bandWidth;
+    yFactor = (bandHeight - y) / bandHeight;
+  } else if (coastConfig.corner === 'top-right') {
+    xFactor = (x - (width - bandWidth)) / bandWidth;
+    yFactor = (bandHeight - y) / bandHeight;
+  } else if (coastConfig.corner === 'bottom-left') {
+    xFactor = (bandWidth - x) / bandWidth;
+    yFactor = (y - (height - bandHeight)) / bandHeight;
+  } else {
+    xFactor = (x - (width - bandWidth)) / bandWidth;
+    yFactor = (y - (height - bandHeight)) / bandHeight;
+  }
+
+  return Math.max(xFactor, yFactor);
+};
+
 // Elevation noise with gradient and octave-based variation
 // Create Perlin noise map with octaves and gradient
-export const createNoise = (width, height, octaves = 4) => {
+export const createNoise = (width, height, octaves = 4, coastConfig = pickCoastConfig()) => {
   const map = [];
   const noise = new Noise(Math.random()); // ✅ Create new noise instance with random seed
   const seaNoise = new Noise(Math.random()); // ✅ Create new seaNoise instance with random seed
@@ -24,15 +100,13 @@ export const createNoise = (width, height, octaves = 4) => {
 
       value = (value + 1) / 2;
 
-      // Add taper only near the bottom 25% of the map
-      const coastThreshold = height * 0.75;
-      if (y >= coastThreshold) {
-        const coastY = (y - coastThreshold) / (height - coastThreshold); // 0 to 1
+      if (isInCoastBand(x, y, width, height, coastConfig)) {
+        const coastFactor = getCoastFactor(x, y, width, height, coastConfig); // 0 to 1
         const distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5; // 0–1
         const cutoff = 0.15 + distortion * 0.15; // 0.15–0.3
 
-        if (coastY > cutoff) {
-          value *= (1 - coastY); // taper down
+        if (coastFactor > cutoff) {
+          value *= (1 - coastFactor); // taper down
         }
       }
 
@@ -543,16 +617,16 @@ function lakeOverlapsCoast(lake, waterMask) {
   return false;
 }
 
-export const generateWaterBodies = (ctx, width, height, noise, waterMask) => {
+export const generateWaterBodies = (ctx, width, height, noise, waterMask, coastConfig = pickCoastConfig()) => {
   const waterBodies = [];
 
   // === 1. Draw SEA ===
   const seaThreshold = 0.15;
-  const seaStartY = Math.floor(height * 0.75);
+  const seaBounds = getSeaBounds(width, height, coastConfig);
 
   ctx.fillStyle = '#4A90E2'; // safe color
-  for (let y = seaStartY; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = seaBounds.yStart; y <= seaBounds.yEnd; y++) {
+    for (let x = seaBounds.xStart; x <= seaBounds.xEnd; x++) {
       if (noise[y][x] < seaThreshold) {
         ctx.fillRect(x, y, 1, 1);
         waterMask[y][x] = true;
@@ -563,8 +637,11 @@ export const generateWaterBodies = (ctx, width, height, noise, waterMask) => {
   const namedOcean = {
     type: 'sea',
     name: generateName('sea'),
-    center: { x: Math.floor(width / 2), y: Math.floor((height + seaStartY) / 2) },
-    area: width * (height - seaStartY)
+    center: {
+      x: Math.floor((seaBounds.xStart + seaBounds.xEnd) / 2),
+      y: Math.floor((seaBounds.yStart + seaBounds.yEnd) / 2)
+    },
+    area: (seaBounds.xEnd - seaBounds.xStart + 1) * (seaBounds.yEnd - seaBounds.yStart + 1)
   };
   waterBodies.push(namedOcean);
 

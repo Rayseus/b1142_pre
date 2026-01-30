@@ -45,11 +45,12 @@ const MapGenerator = () => {
 
     // Generate terrain base
     const waterMask = mapUtils.createWaterMask(width, height);
-    const noise = mapUtils.createNoise(width, height);
+    const coastConfig = mapUtils.pickCoastConfig();
+    const noise = mapUtils.createNoise(width, height, 4, coastConfig);
     const terrain = mapUtils.generateTerrain(ctx, width, height, noise);
 
     // Draw water bodies (rivers, lakes, seas)
-    const waterBodies = mapUtils.generateWaterBodies(ctx, width, height, noise, waterMask);
+    const waterBodies = mapUtils.generateWaterBodies(ctx, width, height, noise, waterMask, coastConfig);
 
     // Update water mask to include lakes and rivers
     waterBodies.forEach(wb => {
