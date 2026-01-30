@@ -1,12 +1,32 @@
 import { generateName } from './NameGenerator';
 import { Noise } from 'noisejs'; // ✅ import from noisejs
 
+// Randomly select a coast configuration
+const selectCoastConfig = () => {
+  const configs = [
+    'bottom',
+    'top',
+    'left',
+    'right',
+    'bottom-left',
+    'bottom-right',
+    'top-left',
+    'top-right'
+  ];
+  return configs[Math.floor(Math.random() * configs.length)];
+};
+
 // Elevation noise with gradient and octave-based variation
 // Create Perlin noise map with octaves and gradient
-export const createNoise = (width, height, octaves = 4) => {
+export const createNoise = (width, height, octaves = 4, coastConfig = null) => {
   const map = [];
   const noise = new Noise(Math.random()); // ✅ Create new noise instance with random seed
   const seaNoise = new Noise(Math.random()); // ✅ Create new seaNoise instance with random seed
+  
+  // If no coast config provided, select one randomly
+  if (!coastConfig) {
+    coastConfig = selectCoastConfig();
+  }
 
   for (let y = 0; y < height; y++) {
     map[y] = [];
@@ -24,23 +44,71 @@ export const createNoise = (width, height, octaves = 4) => {
 
       value = (value + 1) / 2;
 
-      // Add taper only near the bottom 25% of the map
-      const coastThreshold = height * 0.75;
-      if (y >= coastThreshold) {
-        const coastY = (y - coastThreshold) / (height - coastThreshold); // 0 to 1
-        const distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5; // 0–1
-        const cutoff = 0.15 + distortion * 0.15; // 0.15–0.3
-
-        if (coastY > cutoff) {
-          value *= (1 - coastY); // taper down
+      // Apply taper based on coast configuration
+      let shouldTaper = false;
+      let taperValue = 0;
+      
+      if (coastConfig === 'bottom' || coastConfig === 'bottom-left' || coastConfig === 'bottom-right') {
+        const coastThreshold = height * 0.75;
+        if (y >= coastThreshold) {
+          const coastY = (y - coastThreshold) / (height - coastThreshold);
+          const distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5;
+          const cutoff = 0.15 + distortion * 0.15;
+          if (coastY > cutoff) {
+            taperValue = Math.max(taperValue, coastY);
+            shouldTaper = true;
+          }
         }
+      }
+      
+      if (coastConfig === 'top' || coastConfig === 'top-left' || coastConfig === 'top-right') {
+        const coastThreshold = height * 0.25;
+        if (y <= coastThreshold) {
+          const coastY = (coastThreshold - y) / coastThreshold;
+          const distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5;
+          const cutoff = 0.15 + distortion * 0.15;
+          if (coastY > cutoff) {
+            taperValue = Math.max(taperValue, coastY);
+            shouldTaper = true;
+          }
+        }
+      }
+      
+      if (coastConfig === 'left' || coastConfig === 'bottom-left' || coastConfig === 'top-left') {
+        const coastThreshold = width * 0.25;
+        if (x <= coastThreshold) {
+          const coastX = (coastThreshold - x) / coastThreshold;
+          const distortion = seaNoise.perlin2(0, y * 0.05) * 0.5 + 0.5;
+          const cutoff = 0.15 + distortion * 0.15;
+          if (coastX > cutoff) {
+            taperValue = Math.max(taperValue, coastX);
+            shouldTaper = true;
+          }
+        }
+      }
+      
+      if (coastConfig === 'right' || coastConfig === 'bottom-right' || coastConfig === 'top-right') {
+        const coastThreshold = width * 0.75;
+        if (x >= coastThreshold) {
+          const coastX = (x - coastThreshold) / (width - coastThreshold);
+          const distortion = seaNoise.perlin2(0, y * 0.05) * 0.5 + 0.5;
+          const cutoff = 0.15 + distortion * 0.15;
+          if (coastX > cutoff) {
+            taperValue = Math.max(taperValue, coastX);
+            shouldTaper = true;
+          }
+        }
+      }
+      
+      if (shouldTaper) {
+        value *= (1 - taperValue);
       }
 
       map[y][x] = value;
     }
   }
 
-  return map;
+  return { map, coastConfig };
 };
 
 export const generateTerrain = (ctx, width, height, noise) => {
@@ -199,14 +267,33 @@ const generateLake = (ctx, width, height, waterMask) => {
   return lake;
 };
 
-const generateRiver = (ctx, width, height, noise, waterMask) => {
+const generateRiver = (ctx, width, height, noise, waterMask, coastConfig) => {
   const maxAttempts = 50;
   let startX = null, startY = null;
 
-  // Find a valid high elevation starting point
+  // Find a valid high elevation starting point (away from coast)
   for (let i = 0; i < maxAttempts; i++) {
-    const x = Math.floor(Math.random() * width);
-    const y = Math.floor(Math.random() * height * 0.6); // top 60%
+    let x, y;
+    
+    // Choose starting region opposite to coast
+    if (coastConfig === 'bottom' || coastConfig === 'bottom-left' || coastConfig === 'bottom-right') {
+      x = Math.floor(Math.random() * width);
+      y = Math.floor(Math.random() * height * 0.6); // top 60%
+    } else if (coastConfig === 'top' || coastConfig === 'top-left' || coastConfig === 'top-right') {
+      x = Math.floor(Math.random() * width);
+      y = Math.floor(Math.random() * height * 0.4 + height * 0.4); // bottom 60%
+    } else if (coastConfig === 'left') {
+      x = Math.floor(Math.random() * width * 0.4 + width * 0.4); // right 60%
+      y = Math.floor(Math.random() * height);
+    } else if (coastConfig === 'right') {
+      x = Math.floor(Math.random() * width * 0.6); // left 60%
+      y = Math.floor(Math.random() * height);
+    } else {
+      // For corners, start from center area
+      x = Math.floor(Math.random() * width * 0.6 + width * 0.2);
+      y = Math.floor(Math.random() * height * 0.6 + height * 0.2);
+    }
+    
     if (noise[y][x] > 0.6) {
       startX = x;
       startY = y;
@@ -543,35 +630,85 @@ function lakeOverlapsCoast(lake, waterMask) {
   return false;
 }
 
-export const generateWaterBodies = (ctx, width, height, noise, waterMask) => {
+export const generateWaterBodies = (ctx, width, height, noise, waterMask, coastConfig) => {
   const waterBodies = [];
 
-  // === 1. Draw SEA ===
+  // === 1. Draw SEA based on coast configuration ===
   const seaThreshold = 0.15;
-  const seaStartY = Math.floor(height * 0.75);
-
   ctx.fillStyle = '#4A90E2'; // safe color
-  for (let y = seaStartY; y < height; y++) {
+  
+  let seaCenterX = Math.floor(width / 2);
+  let seaCenterY = Math.floor(height / 2);
+  let seaArea = 0;
+  
+  for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (noise[y][x] < seaThreshold) {
+      let shouldDrawSea = false;
+      
+      // Check if this pixel should be sea based on coast config
+      if ((coastConfig === 'bottom' || coastConfig === 'bottom-left' || coastConfig === 'bottom-right') && 
+          y >= Math.floor(height * 0.75) && noise[y][x] < seaThreshold) {
+        shouldDrawSea = true;
+      }
+      
+      if ((coastConfig === 'top' || coastConfig === 'top-left' || coastConfig === 'top-right') && 
+          y <= Math.floor(height * 0.25) && noise[y][x] < seaThreshold) {
+        shouldDrawSea = true;
+      }
+      
+      if ((coastConfig === 'left' || coastConfig === 'bottom-left' || coastConfig === 'top-left') && 
+          x <= Math.floor(width * 0.25) && noise[y][x] < seaThreshold) {
+        shouldDrawSea = true;
+      }
+      
+      if ((coastConfig === 'right' || coastConfig === 'bottom-right' || coastConfig === 'top-right') && 
+          x >= Math.floor(width * 0.75) && noise[y][x] < seaThreshold) {
+        shouldDrawSea = true;
+      }
+      
+      if (shouldDrawSea) {
         ctx.fillRect(x, y, 1, 1);
         waterMask[y][x] = true;
+        seaArea++;
       }
     }
+  }
+  
+  // Calculate sea center based on coast config
+  if (coastConfig === 'bottom') {
+    seaCenterY = Math.floor((height + Math.floor(height * 0.75)) / 2);
+  } else if (coastConfig === 'top') {
+    seaCenterY = Math.floor(height * 0.125);
+  } else if (coastConfig === 'left') {
+    seaCenterX = Math.floor(width * 0.125);
+  } else if (coastConfig === 'right') {
+    seaCenterX = Math.floor((width + Math.floor(width * 0.75)) / 2);
+  } else if (coastConfig === 'bottom-left') {
+    seaCenterX = Math.floor(width * 0.125);
+    seaCenterY = Math.floor((height + Math.floor(height * 0.75)) / 2);
+  } else if (coastConfig === 'bottom-right') {
+    seaCenterX = Math.floor((width + Math.floor(width * 0.75)) / 2);
+    seaCenterY = Math.floor((height + Math.floor(height * 0.75)) / 2);
+  } else if (coastConfig === 'top-left') {
+    seaCenterX = Math.floor(width * 0.125);
+    seaCenterY = Math.floor(height * 0.125);
+  } else if (coastConfig === 'top-right') {
+    seaCenterX = Math.floor((width + Math.floor(width * 0.75)) / 2);
+    seaCenterY = Math.floor(height * 0.125);
   }
 
   const namedOcean = {
     type: 'sea',
     name: generateName('sea'),
-    center: { x: Math.floor(width / 2), y: Math.floor((height + seaStartY) / 2) },
-    area: width * (height - seaStartY)
+    center: { x: seaCenterX, y: seaCenterY },
+    area: seaArea
   };
   waterBodies.push(namedOcean);
 
   // === 2. Generate and draw RIVERS ===
   const numRivers = 5;
   for (let i = 0; i < numRivers; i++) {
-    const river = generateRiver(ctx, width, height, noise, waterMask); // already optimized
+    const river = generateRiver(ctx, width, height, noise, waterMask, coastConfig);
     if (river) {
       waterBodies.push(river);
     }
