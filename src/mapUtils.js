@@ -3,7 +3,7 @@ import { Noise } from 'noisejs'; // ✅ import from noisejs
 
 // Elevation noise with gradient and octave-based variation
 // Create Perlin noise map with octaves and gradient
-export const createNoise = (width, height, octaves = 4) => {
+export const createNoise = (width, height, octaves = 4, coastType = 'bottom') => {
   const map = [];
   const noise = new Noise(Math.random()); // ✅ Create new noise instance with random seed
   const seaNoise = new Noise(Math.random()); // ✅ Create new seaNoise instance with random seed
@@ -24,15 +24,44 @@ export const createNoise = (width, height, octaves = 4) => {
 
       value = (value + 1) / 2;
 
-      // Add taper only near the bottom 25% of the map
-      const coastThreshold = height * 0.75;
-      if (y >= coastThreshold) {
-        const coastY = (y - coastThreshold) / (height - coastThreshold); // 0 to 1
-        const distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5; // 0–1
-        const cutoff = 0.15 + distortion * 0.15; // 0.15–0.3
+      // Calculate coast factor based on type
+      let coastDist = 0;
+      let distortion = 0;
 
-        if (coastY > cutoff) {
-          value *= (1 - coastY); // taper down
+      if (coastType === 'bottom') {
+        const threshold = height * 0.75;
+        if (y >= threshold) {
+          coastDist = (y - threshold) / (height - threshold);
+          distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5;
+        }
+      } else if (coastType === 'top') {
+        const threshold = height * 0.25;
+        if (y <= threshold) {
+          coastDist = (threshold - y) / threshold;
+          distortion = seaNoise.perlin2(x * 0.05, 0) * 0.5 + 0.5;
+        }
+      } else if (coastType.startsWith('corner')) {
+        let u = 0;
+        // Normalize coords 0..1
+        const nx = x / width;
+        const ny = y / height;
+
+        if (coastType === 'corner-br') u = (nx + ny) / 2;
+        else if (coastType === 'corner-tl') u = ((1 - nx) + (1 - ny)) / 2;
+        else if (coastType === 'corner-tr') u = (nx + (1 - ny)) / 2;
+        else if (coastType === 'corner-bl') u = ((1 - nx) + ny) / 2;
+
+        const threshold = 0.75;
+        if (u > threshold) {
+          coastDist = (u - threshold) / (1 - threshold);
+          distortion = seaNoise.perlin2(x * 0.05, y * 0.05) * 0.5 + 0.5;
+        }
+      }
+
+      if (coastDist > 0) {
+        const cutoff = 0.15 + distortion * 0.15;
+        if (coastDist > cutoff) {
+          value *= (1 - coastDist); // taper down
         }
       }
 
@@ -543,15 +572,15 @@ function lakeOverlapsCoast(lake, waterMask) {
   return false;
 }
 
-export const generateWaterBodies = (ctx, width, height, noise, waterMask) => {
+export const generateWaterBodies = (ctx, width, height, noise, waterMask, coastType = 'bottom') => {
   const waterBodies = [];
 
   // === 1. Draw SEA ===
   const seaThreshold = 0.15;
-  const seaStartY = Math.floor(height * 0.75);
-
+  // Scan full map for sea areas (where noise < seaThreshold)
   ctx.fillStyle = '#4A90E2'; // safe color
-  for (let y = seaStartY; y < height; y++) {
+  
+  for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (noise[y][x] < seaThreshold) {
         ctx.fillRect(x, y, 1, 1);
@@ -560,11 +589,19 @@ export const generateWaterBodies = (ctx, width, height, noise, waterMask) => {
     }
   }
 
+  let oceanCenter = { x: width / 2, y: height / 2 };
+  if (coastType === 'bottom') oceanCenter = { x: width / 2, y: height * 0.9 };
+  else if (coastType === 'top') oceanCenter = { x: width / 2, y: height * 0.1 };
+  else if (coastType === 'corner-br') oceanCenter = { x: width * 0.9, y: height * 0.9 };
+  else if (coastType === 'corner-tl') oceanCenter = { x: width * 0.1, y: height * 0.1 };
+  else if (coastType === 'corner-tr') oceanCenter = { x: width * 0.9, y: height * 0.1 };
+  else if (coastType === 'corner-bl') oceanCenter = { x: width * 0.1, y: height * 0.9 };
+
   const namedOcean = {
     type: 'sea',
     name: generateName('sea'),
-    center: { x: Math.floor(width / 2), y: Math.floor((height + seaStartY) / 2) },
-    area: width * (height - seaStartY)
+    center: oceanCenter,
+    area: width * height * 0.2 // approximate
   };
   waterBodies.push(namedOcean);
 

@@ -43,13 +43,18 @@ const MapGenerator = () => {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
+    // Randomize coast type
+    const coastTypes = ['bottom', 'top', 'corner-tl', 'corner-tr', 'corner-bl', 'corner-br'];
+    const coastType = coastTypes[Math.floor(Math.random() * coastTypes.length)];
+    console.log('Generating map with coast type:', coastType);
+
     // Generate terrain base
     const waterMask = mapUtils.createWaterMask(width, height);
-    const noise = mapUtils.createNoise(width, height);
+    const noise = mapUtils.createNoise(width, height, 4, coastType);
     const terrain = mapUtils.generateTerrain(ctx, width, height, noise);
 
     // Draw water bodies (rivers, lakes, seas)
-    const waterBodies = mapUtils.generateWaterBodies(ctx, width, height, noise, waterMask);
+    const waterBodies = mapUtils.generateWaterBodies(ctx, width, height, noise, waterMask, coastType);
 
     // Update water mask to include lakes and rivers
     waterBodies.forEach(wb => {
