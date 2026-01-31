@@ -1,0 +1,128 @@
+[
+  {
+    "rubric_id": "b1142_pre_R01",
+    "rubric_content": "项目必须是 React 应用，并在 package.json 的 dependencies 中声明 react 依赖。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "该 repo 为 Create React App 项目且依赖 React；是否满足可通过静态检查 package.json 中是否存在 react 依赖来二元判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R02",
+    "rubric_content": "项目必须在 package.json 中声明 bootstrap 依赖。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目若要求使用 Bootstrap，则必须在依赖中显式存在；可通过静态检查 package.json 的 dependencies 是否包含 bootstrap 来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R03",
+    "rubric_content": "应用入口必须在代码中引入 Bootstrap 的 CSS（例如 import 'bootstrap/dist/css/bootstrap.min.css'）。",
+    "type": "Correctness",
+    "necessity": "Explicit",
+    "rationale": "仅安装依赖不足以生效，必须在入口（如 App.js）引入样式；通过静态搜索 import 语句即可判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R04",
+    "rubric_content": "地图渲染必须使用 HTML5 Canvas（代码中应存在 <canvas> 元素并获取 2D 上下文 getContext('2d')）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "Canvas 渲染是核心实现约束；可通过静态检查 JSX 是否包含 canvas 以及是否调用 getContext('2d') 来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R05",
+    "rubric_content": "Canvas DOM 节点必须通过 React 的 useRef 引用（例如 const canvasRef = useRef(null) 并传给 ref 属性）。",
+    "type": "Readability & Maintainability",
+    "necessity": "Implicit",
+    "rationale": "在 React 中访问 Canvas DOM 的标准方式是 useRef，属于可推断的最佳实践；可通过静态检查 useRef 与 ref 绑定来二元判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R06",
+    "rubric_content": "UI 必须提供“地图尺寸”选择控件，且代码中应包含至少 4 个预设尺寸（包含 4K 3840x2160）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目若要求可选多种尺寸（含 4K），则应在代码中存在对应的选项列表；可通过静态检查尺寸配置数组/下拉选项内容验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R07",
+    "rubric_content": "UI 必须允许用户分别配置 cities、towns、villages 的数量（存在 3 个数值输入控件并分别绑定到对应状态）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "这是显性的交互功能要求；可通过静态检查是否存在 3 个 type=\"number\" 输入并与 cities/towns/villages 状态关联来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R08",
+    "rubric_content": "上述数量输入必须具备基本约束以避免非法值（例如 input 上设置 min 属性防止负数）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "输入鲁棒性通常是隐性要求，避免负数导致生成逻辑异常；可静态检查 input 是否包含 min（以及可选 max）属性来判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R09",
+    "rubric_content": "必须存在触发地图生成的 UI 操作（例如 \"Generate Map\" 按钮并绑定生成函数）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "可交互生成是核心需求；可通过静态检查按钮文本/事件处理器 onClick 是否指向生成函数来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R10",
+    "rubric_content": "必须提供下载导出功能（代码中应将 canvas 导出为 PNG 数据并触发下载）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "下载是显性要求；可通过静态检查是否调用 canvas.toDataURL('image/png') 或存在等价 downloadCanvas 实现来判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R11",
+    "rubric_content": "地图生成逻辑必须与 UI 组件解耦（例如在独立模块 mapUtils.js 中导出 generateTerrain / generateWaterBodies 等函数，并被组件调用）。",
+    "type": "Readability & Maintainability",
+    "necessity": "Implicit",
+    "rationale": "将复杂算法从 React 组件拆分是可维护性的隐性要求；可通过静态检查组件是否 import 并调用独立工具模块导出的函数来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R12",
+    "rubric_content": "地形/高度生成必须使用噪声算法实现（例如依赖 noisejs 并调用 perlin2 或等价噪声函数）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "自然地形生成通常隐含需要噪声算法；可通过静态检查 noisejs 依赖与 perlin2 调用（或等价噪声实现）来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R13",
+    "rubric_content": "地形像素绘制必须采用高效的 ImageData 批量写入（使用 createImageData/putImageData 或等价缓冲区写入），而非逐像素 fillRect 循环绘制。",
+    "type": "Efficiency & performance",
+    "necessity": "Implicit",
+    "rationale": "支持高分辨率（如 4K）时逐像素 fillRect 性能风险高，批量像素缓冲写入是合理隐性要求；可通过静态检查是否使用 createImageData/putImageData 来判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R14",
+    "rubric_content": "生成结果必须在 UI 中展示统计/列表信息（至少包含 cities、towns、villages 的名称列表展示）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目若要求展示生成的要素名称/统计，则必须有对应渲染；可静态检查是否对 cities/towns/villages 数组进行 map 渲染并输出 name 字段。"
+  },
+  {
+    "rubric_id": "b1142_pre_R15",
+    "rubric_content": "下载按钮在未生成地图时必须不可用（例如 disabled 条件依赖地图数据是否为空）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "避免空白下载属于合理的交互与正确性隐性要求；可通过静态检查下载按钮是否存在 disabled 且绑定到地图是否生成的条件来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R16",
+    "rubric_content": "地图标注（地名/要素名）绘制必须包含避免越界的逻辑（存在基于 width/height 的边界检查或 clamp）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "在 Canvas 上绘制文本时越界会导致可读性与体验问题，合理推断需要边界处理；可通过静态检查是否存在 outOfBounds 判断或对坐标进行 clamp 的逻辑来验证。"
+  },
+  {
+    "rubric_id": "b1142_pre_R17",
+    "rubric_content": "项目必须包含对核心生成工具函数的单元测试文件（例如存在 mapUtils.test.js 并对 generateTerrain / generateWaterBodies / generateSettlements / downloadCanvas 至少之一进行断言）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "对生成逻辑做基本测试可降低回归风险，属于可推断的工程质量要求；可通过静态检查测试文件存在及其导入/断言内容来判定。"
+  },
+  {
+    "rubric_id": "b1142_pre_R18",
+    "rubric_content": "代码不得在仓库中提交明文密钥、Token、密码等敏感信息（例如不应出现常见密钥前缀或 .env 实值）。",
+    "type": "Security",
+    "necessity": "Implicit",
+    "rationale": "敏感信息泄露是通用安全隐性要求；可通过静态扫描仓库变更/文本模式匹配（如 API key 前缀、JWT、AWS keys）进行二元验证。"
+  }
+]

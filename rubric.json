@@ -1,0 +1,182 @@
+[
+  {
+    "rubric_id": "R01",
+    "rubric_content": "UI 必须提供地图尺寸选择控件，且代码中应包含至少 4 个预设尺寸选项（必须包含 4K 3840x2160）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "支持多种地图尺寸（包括 4K）是核心功能需求；可通过静态检查尺寸配置数组是否包含 4K 分辨率来验证。",
+    "score": "1",
+    "score_rationale": "代码在 MapGenerator.js 第 23-28 行定义了 imageSizes 数组，包含 4 个预设尺寸（1000x500、1920x1080、2560x1440、3840x2160），其中包含 4K 分辨率，且第 114-125 行实现了下拉选择控件，满足要求。"
+  },
+  {
+    "rubric_id": "R02",
+    "rubric_content": "UI 必须提供独立的数值输入控件分别配置 cities、towns、villages 的数量（至少 3 个输入控件）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "允许用户分别配置不同类型定居点的数量是显性功能要求；可通过静态检查是否存在 3 个 type=\"number\" 输入来验证。",
+    "score": "1",
+    "score_rationale": "代码在 MapGenerator.js 第 127-162 行实现了三个独立的 input 控件（citiesCount、townsCount、villagesCount），均为 type=\"number\"，分别配置三种定居点数量，满足要求。"
+  },
+  {
+    "rubric_id": "R03",
+    "rubric_content": "数量输入控件必须设置基本约束（例如 min 属性防止负数，max 属性限制上限）。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "在地图生成场景中，定居点数量的非法输入（如负数或超大值）会导致渲染性能问题或逻辑错误；可通过静态检查 input 是否包含 min 和 max 属性来判定。",
+    "score": "1",
+    "score_rationale": "三个输入控件均设置了 min=\"0\" 和 max 属性（cities max=\"20\"、towns max=\"50\"、villages max=\"100\"），有效防止负数和过大值输入，满足要求。"
+  },
+  {
+    "rubric_id": "R04",
+    "rubric_content": "必须提供触发地图生成的 UI 按钮（例如 \"Generate Map\" 按钮并绑定生成函数）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "可交互生成是核心用户操作需求；可通过静态检查按钮元素及其 onClick 事件处理器来验证。",
+    "score": "1",
+    "score_rationale": "代码在第 166-172 行实现了 Generate Map 按钮，并绑定 onClick={generateMap} 事件处理器，触发地图生成逻辑，满足要求。"
+  },
+  {
+    "rubric_id": "R05",
+    "rubric_content": "地图生成的核心算法逻辑（地形生成、水体生成、定居点放置等）必须与 UI 渲染组件解耦，存放在独立的工具模块中。",
+    "type": "Readability & Maintainability",
+    "necessity": "Implicit",
+    "rationale": "地图生成涉及复杂的噪声算法、路径追踪等计算密集型逻辑，与 UI 组件混合会导致组件臃肿难以测试和维护；可通过静态检查是否存在独立的工具模块（如 mapUtils.js）并被 UI 组件导入来验证。",
+    "score": "1",
+    "score_rationale": "代码在第 4 行导入独立的 mapUtils 模块（import * as mapUtils from './mapUtils'），所有核心算法（createNoise、generateTerrain、generateWaterBodies、generateSettlements 等）均在 mapUtils.js 中实现，实现了良好的解耦，满足要求。"
+  },
+  {
+    "rubric_id": "R06",
+    "rubric_content": "地形高度数据生成必须使用多 octave 噪声算法（如 Perlin Noise 或 Simplex Noise），以产生多尺度的自然地形细节。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "生成自然真实的地形需要连续平滑的高度变化且包含大型山脉和小型丘陵等多尺度特征，纯随机数会产生不自然的尖锐突变，单一频率噪声缺乏细节层次；多 octave Perlin Noise 是计算机图形学中生成自然地形的标准方法；可通过静态检查是否导入并使用噪声库且存在 octave 循环或多频率叠加逻辑来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 2 行导入 noisejs 库，第 6-23 行的 createNoise 函数使用 octave 循环（for (let o = 0; o < octaves; o++)）实现多频率叠加，每次迭代调整 amplitude 和 frequency，实现了多 octave Perlin Noise，满足要求。"
+  },
+  {
+    "rubric_id": "R07",
+    "rubric_content": "生成的地图数据必须在 UI 中展示统计信息（至少包含 cities、towns、villages 的名称列表）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "展示生成要素的统计信息是显性 UI 需求；可通过静态检查是否对定居点数组进行 map 渲染并输出名称来验证。",
+    "score": "1",
+    "score_rationale": "MapGenerator.js 第 211-241 行使用 mapData.cities.map、mapData.towns.map、mapData.villages.map 分别渲染三种定居点的名称列表，每个列表项显示定居点名称（city.name、town.name、village.name），满足要求。"
+  },
+  {
+    "rubric_id": "R08",
+    "rubric_content": "下载按钮在地图未生成时必须处于禁用状态，防止下载空白或无效内容。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "在地图生成器场景中，用户可能在未生成地图时误点下载按钮，导致下载空白图片造成困惑；可通过静态检查按钮的 disabled 属性是否依赖地图数据状态来验证。",
+    "score": "1",
+    "score_rationale": "第 180 行下载按钮设置了 disabled={mapData.terrain.length === 0}，当地图未生成时（terrain 数组为空）按钮处于禁用状态，满足要求。"
+  },
+  {
+    "rubric_id": "R09",
+    "rubric_content": "地图上的文本标注（如地名、特征名）绘制时必须包含边界检查，防止标签绘制超出 Canvas 可视区域。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "在高分辨率地图（如 4K）上，标签位置靠近边缘时容易超出可视区域导致显示不完整；可通过静态检查绘制文本的函数中是否存在基于 canvas.width/height 的边界判断逻辑来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 474-475 行在 drawFeatureNames 函数中实现了边界检查（box.x1 < 0 || box.x2 > width || box.y1 < 0 || box.y2 > height），防止标签超出 Canvas 可视区域，满足要求。"
+  },
+  {
+    "rubric_id": "R10",
+    "rubric_content": "定居点（cities、towns、villages）生成时必须实现最小距离约束，防止定居点重叠或过度密集。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "在地图生成场景中，定居点过于密集会导致视觉混乱且不符合真实地理分布规律；可通过静态检查是否存在计算两点间距离并与阈值比较的逻辑来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 646-656 行实现了 checkMinimumDistance 函数，使用欧几里得距离公式计算两点间距离并与 minDistance 比较，第 670-672 行为不同类型定居点设置了不同的最小距离（cities 80、towns 50、villages 30），并在生成时调用此函数进行验证，满足要求。"
+  },
+  {
+    "rubric_id": "R11",
+    "rubric_content": "地形渲染必须采用批量像素写入方式（如使用 ImageData API），避免在高分辨率（如 4K）下逐像素绘制导致的性能瓶颈。",
+    "type": "Efficiency & performance",
+    "necessity": "Explicit",
+    "rationale": "项目明确支持 4K 分辨率（3840x2160，超过 800 万像素），逐像素调用 fillRect 会触发多次渲染管线，导致卡顿；ImageData 批量写入是 Canvas 高性能渲染的标准做法；可通过静态检查是否使用 createImageData/putImageData 且避免在循环中使用 fillRect 来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 77-112 行的 generateTerrain 函数使用 ctx.createImageData 创建 ImageData，在循环中填充 data 数组，最后调用 ctx.putImageData 一次性写入所有像素，避免了逐像素 fillRect 调用，满足要求。"
+  },
+  {
+    "rubric_id": "R12",
+    "rubric_content": "必须支持多种海岸线类型的地形生成（至少包括底部、顶部、四个角落方向的海岸线）。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "多样化的海岸线类型是地图生成多样性的核心需求；可通过静态检查地形生成逻辑中是否存在处理不同海岸类型的条件分支（如 bottom、top、corner 等）来验证。",
+    "score": "1",
+    "score_rationale": "MapGenerator.js 第 47 行定义了 6 种海岸类型数组（bottom、top、corner-tl、corner-tr、corner-bl、corner-br），mapUtils.js 第 31-59 行在 createNoise 函数中针对不同 coastType 实现了相应的处理逻辑，满足要求。"
+  },
+  {
+    "rubric_id": "R13",
+    "rubric_content": "水体生成必须包含海洋、河流和湖泊三种类型，且每种类型有明确的生成逻辑和数据结构。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "水体多样性是地图核心地理特征需求；可通过静态检查水体生成代码是否返回包含这三种类型的数据数组来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 575-634 行的 generateWaterBodies 函数分别生成海洋（sea，第 578-606 行）、河流（river，第 608-615 行）、湖泊（lake，第 617-631 行）三种水体类型，每种类型有独立的生成逻辑和数据结构（包含 type、name、center 等属性），满足要求。"
+  },
+  {
+    "rubric_id": "R14",
+    "rubric_content": "河流生成必须基于地形高度实现下坡路径追踪，确保河流从高处流向低处符合物理规律。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "河流违反重力规律（如上坡流动）会破坏地图的真实感；可通过静态检查河流生成逻辑中是否存在比较相邻点高度值并选择最低点的代码来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 231-340 行的 generateRiver 函数实现了基于地形高度的路径追踪，第 274-281 行计算相邻点的高度差（drop = currentElevation - e），选择最陡下坡方向（steepestDrop），确保河流从高处流向低处，满足要求。"
+  },
+  {
+    "rubric_id": "R15",
+    "rubric_content": "河流路径追踪算法必须包含终止条件（如到达水体、达到最大步数或陷入局部低点），避免无限循环。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "路径追踪算法在复杂地形中可能遇到平坦区域或环形路径导致死循环；可通过静态检查循环中是否存在明确的终止判断（如步数限制、是否到达边界或水体）来验证。",
+    "score": "1",
+    "score_rationale": "generateRiver 函数第 252 行设置最大步数（maxSteps = 500），第 256 行循环条件包含步数和水体到达检查（steps++ < maxSteps && !reachedWater），第 292 和 295-297 行判断陷入局部低点和到达水体的终止条件，有效避免无限循环，满足要求。"
+  },
+  {
+    "rubric_id": "R16",
+    "rubric_content": "定居点生成时必须筛选合适的地形类型（如排除水体、陡峭山地），确保定居点位置的合理性。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "定居点出现在水体或极端地形上不符合现实逻辑；可通过静态检查定居点生成代码中是否存在基于地形类型和水体遮罩的过滤逻辑来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 637-643 行的 pickLocation 函数通过 conditionFn 过滤地形类型（如第 684 行只选择 plains 和 forest），并检查 waterMask 排除水体区域（!(waterMask[t.y] && waterMask[t.y][t.x])），确保定居点位置合理，满足要求。"
+  },
+  {
+    "rubric_id": "R17",
+    "rubric_content": "地图下载功能必须将 Canvas 内容导出为图片格式（如 PNG），并触发浏览器下载而非仅在新窗口打开。",
+    "type": "Correctness",
+    "necessity": "Explicit",
+    "rationale": "用户期望下载功能能保存文件到本地而非仅预览；可通过静态检查是否调用 canvas.toDataURL 或 toBlob 并创建带 download 属性的临时链接来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 810-817 行的 downloadCanvas 函数调用 canvas.toDataURL('image/png') 获取图片数据，创建临时 <a> 标签并设置 download 属性，通过 link.click() 触发浏览器下载，满足要求。"
+  },
+  {
+    "rubric_id": "R18",
+    "rubric_content": "水体遮罩数据结构必须在生成河流和湖泊后及时更新，确保后续定居点生成能正确避开水体区域。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "如果水体遮罩未更新，定居点可能被错误放置在河流或湖泊上；可通过静态检查水体生成代码后是否调用了更新遮罩的逻辑来验证。",
+    "score": "1",
+    "score_rationale": "MapGenerator.js 第 60-63 行在生成水体后立即更新 waterMask（调用 markLakeOnWaterMask 和 markRiverOnWaterMask），mapUtils.js 第 321-332 行（河流）和第 820-833 行（湖泊）实现了遮罩更新逻辑，确保定居点生成时能正确避开水体，满足要求。"
+  },
+  {
+    "rubric_id": "R19",
+    "rubric_content": "地图标注（地名、特征名）必须实现碰撞检测，避免多个标签重叠导致无法阅读。",
+    "type": "Readability & Maintainability",
+    "necessity": "Implicit",
+    "rationale": "在复杂地图上，多个标签可能位置接近导致重叠遮挡，严重影响可读性；可通过静态检查标注绘制代码中是否维护已放置标签的位置列表并进行重叠判断来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 405 行维护 placedLabels 数组存储已放置标签位置，第 477-480 行检查新标签是否与已有标签重叠（box.x1 < p.x2 && box.x2 > p.x1 && box.y1 < p.y2 && box.y2 > p.y1），只有不重叠时才绘制并添加到列表，满足要求。"
+  },
+  {
+    "rubric_id": "R20",
+    "rubric_content": "生成的定居点数据对象必须包含完整的属性（name、type、x、y、population），以支持 UI 统计信息展示。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "UI 需要展示定居点名称列表和统计信息（呼应R07），数据结构不完整会导致显示缺失或错误；可通过静态检查定居点对象的属性赋值是否包含这些字段来验证。",
+    "score": "1",
+    "score_rationale": "mapUtils.js 第 690-696 行（cities）、732-738 行（towns）、774-780 行（villages）创建定居点对象时均包含 name、type、x、y、population 五个属性，数据结构完整，支持 UI 统计信息展示，满足要求。"
+  }
+]
