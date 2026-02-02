@@ -1,142 +1,100 @@
 [
   {
     "rubric_id": "R01",
-    "rubric_content": "UI 必须提供地图尺寸选择控件，且代码中应包含至少 4 个预设尺寸选项（必须包含 4K 3840x2160）。",
+    "rubric_content": "代码逻辑必须能够生成三种不同的海岸线配置：底部海岸、顶部海岸、角落海岸。",
     "type": "Instruction Following",
     "necessity": "Explicit",
-    "rationale": "支持多种地图尺寸（包括 4K）是核心功能需求；可通过静态检查尺寸配置数组是否包含 4K 分辨率来验证。"
+    "rationale": "题目明确要求支持 bottom、top、corner 三种类型，这是核心显性要求，是任务的核心功能，通过代码自动化/模型验证可判断是否包含这些逻辑配置。"
   },
   {
     "rubric_id": "R02",
-    "rubric_content": "数量输入控件必须设置基本约束（例如 min 属性防止负数，max 属性限制上限）。",
-    "type": "Correctness",
-    "necessity": "Implicit",
-    "rationale": "在地图生成场景中，定居点数量的非法输入（如负数或超大值）会导致渲染性能问题或逻辑错误；可通过静态检查 input 是否包含 min 和 max 属性来判定。"
+    "rubric_content": "地图生成时，海岸线类型必须通过随机机制选择，而非硬编码为固定类型。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目明确要求海岸线类型需要随机化，这是核心显性要求，是任务的核心功能，通过代码自动化/模型验证可判断是否实现了随机选择机制。"
   },
   {
     "rubric_id": "R03",
-    "rubric_content": "地图生成的核心算法逻辑（地形生成、水体生成、定居点放置等）必须与 UI 渲染组件解耦，存放在独立的工具模块中。",
-    "type": "Readability & Maintainability",
-    "necessity": "Implicit",
-    "rationale": "地图生成涉及复杂的噪声算法、路径追踪等计算密集型逻辑，与 UI 组件混合会导致组件臃肿难以测试和维护；可通过静态检查是否存在独立的工具模块（如 mapUtils.js）并被 UI 组件导入来验证。"
+    "rubric_content": "当海岸线类型为 \"bottom\" 时，海洋/水体区域必须位于地图的底部边缘。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目明确要求支持 bottom 海岸线类型，这是核心显性要求，是任务的核心功能，通过代码自动化/模型验证可判断当类型为 bottom 时水体是否位于底部。"
   },
   {
     "rubric_id": "R04",
-    "rubric_content": "地形高度数据生成必须使用多 octave 噪声算法（如 Perlin Noise 或 Simplex Noise），以产生多尺度的自然地形细节。",
-    "type": "Correctness",
-    "necessity": "Implicit",
-    "rationale": "生成自然真实的地形需要连续平滑的高度变化且包含大型山脉和小型丘陵等多尺度特征，纯随机数会产生不自然的尖锐突变，单一频率噪声缺乏细节层次；多 octave Perlin Noise 是计算机图形学中生成自然地形的标准方法；可通过静态检查是否导入并使用噪声库且存在 octave 循环或多频率叠加逻辑来验证。"
+    "rubric_content": "当海岸线类型为 \"top\" 时，海洋/水体区域必须位于地图的顶部边缘。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目明确要求支持 top 海岸线类型，这是核心显性要求，是任务的核心功能，通过代码自动化/模型验证可判断当类型为 top 时水体是否位于顶部。"
   },
   {
     "rubric_id": "R05",
-    "rubric_content": "地图上的文本标注（如地名、特征名）绘制时必须包含边界检查，防止标签绘制超出 Canvas 可视区域。",
-    "type": "Correctness",
-    "necessity": "Implicit",
-    "rationale": "在高分辨率地图（如 4K）上，标签位置靠近边缘时容易超出可视区域导致显示不完整；可通过静态检查绘制文本的函数中是否存在基于 canvas.width/height 的边界判断逻辑来验证。"
+    "rubric_content": "当海岸线类型为 \"corner\" 时，代码必须包含随机选择具体角落（如左下、右下、左上、右上）的逻辑，确保海洋/水体区域不会固定出现在同一个角落。",
+    "type": "Instruction Following",
+    "necessity": "Explicit",
+    "rationale": "题目明确要求支持 corner 海岸线类型，且要求 randomized，这隐含了角落选择本身也应具备随机性，而非固定某一角，属于核心显性要求。"
   },
   {
     "rubric_id": "R06",
-    "rubric_content": "定居点（cities、towns、villages）生成时必须实现最小距离约束，防止定居点重叠或过度密集。",
+    "rubric_content": "海岸线类型的变化不应破坏现有的地形生成逻辑——无论选择哪种海岸类型，陆地区域的 Perlin 噪声地形应正常生成。",
     "type": "Correctness",
     "necessity": "Implicit",
-    "rationale": "在地图生成场景中，定居点过于密集会导致视觉混乱且不符合真实地理分布规律；可通过静态检查是否存在计算两点间距离并与阈值比较的逻辑来验证。"
+    "rationale": "当前 `generateTerrain` 函数依赖 `noise[y][x]` 的值进行地形分类，修改 `createNoise` 函数时应确保陆地区域的噪声值分布不受影响，为了保证代码的整体正确性和稳定性，属于隐性要求。"
   },
   {
     "rubric_id": "R07",
-    "rubric_content": "地形渲染必须采用批量像素写入方式（如使用 ImageData API），避免在高分辨率（如 4K）下逐像素绘制导致的性能瓶颈。",
-    "type": "Efficiency & performance",
-    "necessity": "Explicit",
-    "rationale": "项目明确支持 4K 分辨率（3840x2160，超过 800 万像素），逐像素调用 fillRect 会触发多次渲染管线，导致卡顿；ImageData 批量写入是 Canvas 高性能渲染的标准做法；可通过静态检查是否使用 createImageData/putImageData 且避免在循环中使用 fillRect 来验证。"
+    "rubric_content": "海岸线类型的变化必须正确更新水体遮罩 (waterMask)，确保定居点不会生成在新位置的海洋区域内。",
+    "type": "Correctness",
+    "necessity": "Implicit",
+    "rationale": "当前 `generateWaterBodies` 函数在 `seaStartY = height * 0.75` 处开始绘制海洋并标记 waterMask，修改后需确保 waterMask 与新的海岸位置一致，为了确保定居点生成等后续逻辑的正确性，属于隐性要求。"
   },
   {
     "rubric_id": "R08",
-    "rubric_content": "必须支持多种海岸线类型的地形生成（至少包括底部、顶部、四个角落方向的海岸线）。",
-    "type": "Instruction Following",
-    "necessity": "Explicit",
-    "rationale": "多样化的海岸线类型是地图生成多样性的核心需求；可通过静态检查地形生成逻辑中是否存在处理不同海岸类型的条件分支（如 bottom、top、corner 等）来验证。"
+    "rubric_content": "海岸线类型的随机选择应在地图生成开始时确定一次，而非在渲染循环中重复调用随机函数。",
+    "type": "Efficiency & performance",
+    "necessity": "Implicit",
+    "rationale": "当前噪声生成在 `createNoise` 函数中完成，海岸类型选择应在此函数调用前或开始时确定，为了避免渲染时的性能开销和逻辑错误（如闪烁），属于隐性效率要求。"
   },
   {
     "rubric_id": "R09",
-    "rubric_content": "水体生成必须包含海洋、河流和湖泊三种类型，且每种类型有明确的生成逻辑和数据结构。",
-    "type": "Instruction Following",
-    "necessity": "Explicit",
-    "rationale": "水体多样性是地图核心地理特征需求；可通过静态检查水体生成代码是否返回包含这三种类型的数据数组来验证。"
+    "rubric_content": "新增的海岸线类型相关代码应包含必要的注释，说明每种类型的几何含义。",
+    "type": "Documentation & Comments",
+    "necessity": "Implicit",
+    "rationale": "为了方便其他开发者理解新增的海岸线几何逻辑，代码应包含必要的注释，属于隐性要求。"
   },
   {
     "rubric_id": "R10",
-    "rubric_content": "河流生成必须基于地形高度实现下坡路径追踪，确保河流从高处流向低处符合物理规律。",
-    "type": "Correctness",
+    "rubric_content": "海岸线类型的配置查询不应在像素级双重循环的每次迭代中重复执行，应通过循环外预计算或策略模式优化。",
+    "type": "Efficiency & performance",
     "necessity": "Implicit",
-    "rationale": "河流违反重力规律（如上坡流动）会破坏地图的真实感；可通过静态检查河流生成逻辑中是否存在比较相邻点高度值并选择最低点的代码来验证。"
+    "rationale": "在双重循环（width * height）中进行重复的条件判断或字符串操作会显著影响地图生成性能，属于隐性效率要求。"
   },
   {
     "rubric_id": "R11",
-    "rubric_content": "河流路径追踪算法必须包含终止条件（如到达水体、达到最大步数或陷入局部低点），避免无限循环。",
-    "type": "Correctness",
+    "rubric_content": "代码应包含对无效海岸线类型的防御性处理逻辑，例如当传入未知类型时抛出错误或记录警告，而不是静默失败。",
+    "type": "Security",
     "necessity": "Implicit",
-    "rationale": "路径追踪算法在复杂地形中可能遇到平坦区域或环形路径导致死循环；可通过静态检查循环中是否存在明确的终止判断（如步数限制、是否到达边界或水体）来验证。"
+    "rationale": "防御性编程是防止系统因异常输入而崩溃或产生未定义行为的关键措施，属于隐性要求。"
   },
   {
     "rubric_id": "R12",
-    "rubric_content": "定居点生成时必须筛选合适的地形类型（如排除水体、陡峭山地），确保定居点位置的合理性。",
-    "type": "Correctness",
+    "rubric_content": "海岸线类型的定义应具有可扩展性，新增海岸线类型时无需大幅修改现有代码结构，例如通过数组、枚举或配置对象定义。",
+    "type": "Readability & Maintainability",
     "necessity": "Implicit",
-    "rationale": "定居点出现在水体或极端地形上不符合现实逻辑；可通过静态检查定居点生成代码中是否存在基于地形类型和水体遮罩的过滤逻辑来验证。"
+    "rationale": "使用硬编码字符串难以维护且容易出错，使用集中定义的常量或配置能显著提升代码的可扩展性，属于隐性要求。"
   },
   {
     "rubric_id": "R13",
-    "rubric_content": "地图下载功能必须将 Canvas 内容导出为图片格式（如 PNG），并触发浏览器下载而非仅在新窗口打开。",
+    "rubric_content": "当海岸线类型为 top 时，河流生成逻辑应仍能正常工作——河流应从高地流向顶部的海洋而非底部，避免因硬编码流向导致逻辑错误。",
     "type": "Correctness",
-    "necessity": "Explicit",
-    "rationale": "用户期望下载功能能保存文件到本地而非仅预览；可通过静态检查是否调用 canvas.toDataURL 或 toBlob 并创建带 download 属性的临时链接来验证。"
+    "necessity": "Implicit",
+    "rationale": "原仓库河流起点搜索区域被硬编码在地图的 顶部 60% 区域。当 海岸线类型为 top 时，海洋在顶部，高地应位于底部。但由于上述硬编码逻辑，代码仍然尝试在 顶部 （此时是低海拔的海洋或沿海区域）寻找高海拔的河流起点。这会导致无法找到合适的高地起点，或者生成的河流逻辑错误（例如试图从海里发源）。"
   },
   {
     "rubric_id": "R14",
-    "rubric_content": "水体遮罩数据结构必须在生成河流和湖泊后及时更新，确保后续定居点生成能正确避开水体区域。",
+    "rubric_content": "修改后， `createNoise` 函数应保持 API 向后兼容性，例如：如果新增的 `coastType` 参数，应设置默认值，以防止破坏现有的函数调用。",
     "type": "Correctness",
     "necessity": "Implicit",
-    "rationale": "如果水体遮罩未更新，定居点可能被错误放置在河流或湖泊上；可通过静态检查水体生成代码后是否调用了更新遮罩的逻辑来验证。"
-  },
-  {
-    "rubric_id": "R15",
-    "rubric_content": "地图标注（地名、特征名）必须实现碰撞检测，避免多个标签重叠导致无法阅读。",
-    "type": "Readability & Maintainability",
-    "necessity": "Implicit",
-    "rationale": "在复杂地图上，多个标签可能位置接近导致重叠遮挡，严重影响可读性；可通过静态检查标注绘制代码中是否维护已放置标签的位置列表并进行重叠判断来验证。"
-  },
-  {
-    "rubric_id": "R16",
-    "rubric_content": "高分辨率（如 4K）地图生成过程必须保持 UI 响应，不能长时间阻塞主线程（例如应使用 Web Worker 或异步分片处理）。",
-    "type": "Efficiency & performance",
-    "necessity": "Implicit",
-    "rationale": "4K 地图生成涉及数百万像素的遍历和噪声计算，在主线程同步执行会导致页面长时间卡死，严重影响用户体验；可通过静态检查是否使用了 Worker API 或 setTimeout/requestAnimationFrame 进行任务分片来验证。"
-  },
-  {
-    "rubric_id": "R17",
-    "rubric_content": "生成逻辑应具备完善的错误边界处理，当生成算法失败（如重试次数超限导致无法生成河流或定居点）时，应有明确的用户提示（如 Toast 或 Alert），而非静默失败。",
-    "type": "Correctness",
-    "necessity": "Implicit",
-    "rationale": "随机生成算法可能因约束条件过严而失败，静默失败会让用户以为程序出错或无反应；可通过静态检查算法失败分支（如 return null 或 continue）是否触发了 UI 状态更新或提示函数来验证。"
-  },
-  {
-    "rubric_id": "R18",
-    "rubric_content": "地图渲染的颜色配置（地形、水体等）应提取为常量配置对象、主题文件或 CSS 变量，便于统一管理和修改，而非在渲染逻辑中硬编码颜色值。",
-    "type": "Readability & Maintainability",
-    "necessity": "Implicit",
-    "rationale": "硬编码颜色值（如 [200, 230, 160]）导致代码难以维护且难以实现主题切换；可通过静态检查渲染函数中是否直接使用了字面量颜色值而非引用配置对象来验证。"
-  },
-  {
-    "rubric_id": "R19",
-    "rubric_content": "UI 必须提供随机种子（Seed）输入控件，允许用户通过指定种子复现特定的地图生成结果。",
-    "type": "Instruction Following",
-    "necessity": "Implicit",
-    "rationale": "在过程化生成工具中，复现特定结果是核心高级需求；可通过静态检查是否使用了带种子的伪随机数生成器（如 seedrandom）且 UI 包含种子输入框来验证。"
-  },
-  {
-    "rubric_id": "R20",
-    "rubric_content": "UI 应提供撤销功能，允许用户恢复上一次生成的地图状态，防止误操作覆盖满意的结果。",
-    "type": "Instruction Following",
-    "necessity": "Implicit",
-    "rationale": "生成类工具通常需要探索性操作，撤销功能是防止意外丢失成果的重要保障；可通过静态检查是否维护了历史状态栈（History Stack）来实现撤销逻辑。"
+    "rationale": "为了确保不破坏现有代码的调用方式，公开函数的签名应保持向后兼容，属于隐性要求。"
   }
 ]
